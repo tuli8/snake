@@ -1,177 +1,246 @@
-const SIZE = 11;// TODO: make size changable
-const FPS = 2;// TODO: make fps changable
-let snake = new Snake(new Vec(Math.floor(SIZE/2), Math.floor(SIZE/2)), () => {
+const TILES = 11; // TODO: make TILES changable
+const FPS = 2; // TODO: make fps changable
+const GRID_COLOR = "#4d4d4d";
+const APPLE_COLOR = "white";
+const SNAKE_COLOR = "white";
+
+let snake = new Snake(
+  new Vec(Math.floor(TILES / 2), Math.floor(TILES / 2)),
+  () => {
     endScreen(snake.length);
-});
+  }
+);
 
-const applePosition = (snake) => {
-    const emptySpaces = [];
+const positionApple = (snake) => {
+  const emptyCells = [];
 
-    for (let i = 0; i < SIZE; i++) {
-        for (let j = 0; j < SIZE; j++) {
-            emptySpaces.push(new Vec(i, j));
-        }
+  for (let rowIndex = 0; rowIndex < TILES; rowIndex++) {
+    for (let columnIndex = 0; columnIndex < TILES; columnIndex++) {
+      emptyCells.push(new Vec(rowIndex, columnIndex));
     }
+  }
 
-    for (let cell of snake.cells) {
-        const index = emptySpaces.map(element => cell.equals(element)).indexOf(true);
-        if (index > -1) {
-            emptySpaces.splice(index, 1);
-        }
+  for (let cell of snake.cells) {
+    const index = emptyCells
+      .map((element) => cell.equals(element))
+      .indexOf(true);
+    if (index > -1) {
+      emptyCells.splice(index, 1);
     }
+  }
 
-    return emptySpaces[Math.floor(Math.random() * emptySpaces.length)]
-}
+  return emptyCells[Math.floor(Math.random() * emptyCells.length)];
+};
 
-let apple = applePosition(snake);
+let applePosition = positionApple(snake);
 
 window.onload = () => {
-    window.addEventListener('keydown', (event) => {
-        try {
-            switch (event.code) {
-                case 'ArrowUp':
-                    snake.changeDirection(Snake.UP_DIRECTION);
-                    break;
-                case 'ArrowDown':
-                    snake.changeDirection(Snake.DOWN_DIRECTION);
-                    break;
-                case 'ArrowLeft':
-                    snake.changeDirection(Snake.LEFT_DIRECTION);
-                    break;
-                case 'ArrowRight':
-                    snake.changeDirection(Snake.RIGHT_DIRECTION);
-                    break;
-            }
-        } catch (error) {
-            console.log(error.message);
-        }
-    });
+  window.addEventListener("keydown", (event) => {
+    try {
+      switch (event.code) {
+        case "ArrowUp":
+          snake.changeDirection(Snake.UP_DIRECTION);
+          break;
+        case "ArrowDown":
+          snake.changeDirection(Snake.DOWN_DIRECTION);
+          break;
+        case "ArrowLeft":
+          snake.changeDirection(Snake.LEFT_DIRECTION);
+          break;
+        case "ArrowRight":
+          snake.changeDirection(Snake.RIGHT_DIRECTION);
+          break;
+      }
+    } catch (error) {
+      console.log(error.message);
+    }
+  });
 
-    document.getElementById('reset').onclick = reset;
+  document.getElementById("reset").onclick = reset;
 
-    updateCanvas();
-    setInterval(() => {
-        updateGame(); 
-        if (snake.alive) {
-            updateCanvas();
-        }
-    }, 1/FPS * 1000)
-}
+  updateCanvas();
+  setInterval(() => {
+    if (snake.alive) {
+      updateGame();
+    }
+    if (snake.alive) {
+      updateCanvas();
+    }
+  }, (1 / FPS) * 1000);
+};
 
 const updateGame = () => {
-    if (snake.alive) {
-        const generatorObj = snake.moveSnake(); 
-        generatorObj.next();
-    
-        if (snake.head.x < 0 || snake.head.x >= SIZE || snake.head.y < 0 || snake.head.y >= SIZE) {
-            generatorObj.next(true);
-            snake.kill();
-        }
-    
-        if (snake.head.equals(apple)) {
-            generatorObj.next(false);
-            apple = applePosition(snake);
-        } else {
-            generatorObj.next(true);
-        }
-    }
-}
+  const generatorObj = snake.moveSnake();
+  generatorObj.next();
 
-const drawLine = ([ctx, tileSize, baseVec, addedX=0, addedY=0, dx=0, dy=0]) => {
-    ctx.beginPath();
-    ctx.moveTo((baseVec.x + addedX) * tileSize, (baseVec.y + addedY) * tileSize);
-    ctx.lineTo((baseVec.x + addedX + dx) * tileSize , (baseVec.y + addedY + dy)* tileSize)
-    ctx.stroke();
-}
+  if (
+    snake.head.x < 0 ||
+    snake.head.x >= TILES ||
+    snake.head.y < 0 ||
+    snake.head.y >= TILES
+  ) {
+    generatorObj.next(true);
+    snake.kill();
+  }
 
-const drawSides = (data, isHorizontal) =>{
-    if (isHorizontal) {
-        drawLine([...data,0,0,1,0]);
-        drawLine([...data,0,1,1,0]);
+  if (snake.head.equals(applePosition)) {
+    generatorObj.next(false);
+    applePosition = positionApple(snake);
+  } else {
+    generatorObj.next(true);
+  }
+};
+
+const drawLine = ([
+  context,
+  tileSize,
+  basePosition,
+  addedX = 0,
+  addedY = 0,
+  dx = 0,
+  dy = 0,
+]) => {
+  context.beginPath();
+  context.moveTo(
+    (basePosition.x + addedX) * tileSize,
+    (basePosition.y + addedY) * tileSize
+  );
+  context.lineTo(
+    (basePosition.x + addedX + dx) * tileSize,
+    (basePosition.y + addedY + dy) * tileSize
+  );
+  context.stroke();
+};
+
+const drawParallelLines = (data, isHorizontal) => {
+  if (isHorizontal) {
+    drawLine([...data, 0, 0, 1, 0]);
+    drawLine([...data, 0, 1, 1, 0]);
+  } else {
+    drawLine([...data, 0, 0, 0, 1]);
+    drawLine([...data, 1, 0, 0, 1]);
+  }
+};
+
+const drawThreeQuarterSquare = (context, tileSize, difference, cell) => {
+  const data = [context, tileSize, cell];
+
+  if (difference.x === 0) {
+    drawParallelLines(data, false);
+    if (difference.y === 1) {
+      drawLine([...data, 0, 1, 1, 0]);
     } else {
-        drawLine([...data,0,0,0,1]);
-        drawLine([...data,1,0,0,1]);
+      drawLine([...data, 0, 0, 1, 0]);
     }
-}
-
-const drawThreeQuarterSquare = (ctx, tileSize, difference, cell) => {
-    const data = [ctx, tileSize, cell]
-
-    if (difference.x === 0) {
-        drawSides(data, false);
-        if (difference.y === 1) {
-            drawLine([...data,0,1,1,0]);
-        } else {
-            drawLine([...data,0,0,1,0]);
-        }
+  } else {
+    drawParallelLines(data, true);
+    if (difference.x === 1) {
+      drawLine([...data, 1, 0, 0, 1]);
     } else {
-        drawSides(data, true); 
-        if (difference.x === 1) {
-            drawLine([...data,1,0,0,1]);
-        } else {
-            drawLine([...data,0,0,0,1]);
-        }
+      drawLine([...data, 0, 0, 0, 1]);
     }
-}
+  }
+};
 
-const updateCanvas = () => {// TODO: animate snake
-    const ctx = document.getElementById('canvas').getContext('2d');
-    const width = document.getElementById('canvas').width;
-    ctx.clearRect(0, 0, width, width);
-    const tileSize = width / SIZE;
-    ctx.strokeStyle = '#4d4d4d'
-    
-    for (let i = 0; i <SIZE; i++) {
-        for (let j = 0 ; j < SIZE; j++) {
-            ctx.strokeRect(j*tileSize, i* tileSize, tileSize, tileSize);
-        }
+const updateCanvas = () => {
+  // TODO: animate snake
+  const context = document.getElementById("canvas").getContext("2d");
+  const canvasWidth = document.getElementById("canvas").width;
+  context.clearRect(0, 0, canvasWidth, canvasWidth);
+  const tileSize = canvasWidth / TILES;
+  context.strokeStyle = GRID_COLOR;
+
+  for (let rowIndex = 0; rowIndex < TILES; rowIndex++) {
+    for (let columnIndex = 0; columnIndex < TILES; columnIndex++) {
+      context.strokeRect(
+        columnIndex * tileSize,
+        rowIndex * tileSize,
+        tileSize,
+        tileSize
+      );
     }
+  }
 
-    ctx.strokeStyle = 'white';
-    ctx.fillStyle = 'white';
+  context.strokeStyle = SNAKE_COLOR;
+  context.fillStyle = APPLE_COLOR;
 
+  if (snake.length === 1) {
+    context.strokeRect(
+      snake.head.x * tileSize,
+      snake.head.y * tileSize,
+      tileSize,
+      tileSize
+    );
+  } else {
+    const headDirection = snake.head.subtract(snake.cells[1]);
+    drawThreeQuarterSquare(context, tileSize, headDirection, snake.head);
 
-    if (snake.length === 1) {
-        ctx.strokeRect(snake.head.x*tileSize, snake.head.y* tileSize, tileSize, tileSize);
-    } else {
-        const headDirection = snake.head.subtract(snake.cells[1]);
-        drawThreeQuarterSquare(ctx, tileSize, headDirection, snake.head);
+    const tailDirection = snake.tail.subtract(snake.cells[snake.length - 2]);
+    drawThreeQuarterSquare(context, tileSize, tailDirection, snake.tail);
 
-        const tailDirection = snake.tail.subtract(snake.cells[snake.length-2]);
-        drawThreeQuarterSquare(ctx, tileSize, tailDirection, snake.tail);
+    for (let cellIndex = 1; cellIndex < snake.cells.length - 1; cellIndex++) {
+      const firstDifference = snake.cells[cellIndex - 1].subtract(
+        snake.cells[cellIndex]
+      );
+      const secondDifference = snake.cells[cellIndex].subtract(
+        snake.cells[cellIndex + 1]
+      );
 
+      if (firstDifference.equals(secondDifference)) {
+        drawParallelLines(
+          [context, tileSize, snake.cells[cellIndex]],
+          firstDifference.x !== 0
+        );
+      } else {
+        const turnType = firstDifference.subtract(secondDifference);
 
-        for (let i = 1; i < snake.cells.length - 1; i++) {
-            const firstDifference = snake.cells[i-1].subtract(snake.cells[i]);
-            const secondDifference = snake.cells[i].subtract(snake.cells[i+1]);
-
-            if (firstDifference.equals(secondDifference)) {
-                drawSides([ctx, tileSize, snake.cells[i]], firstDifference.x !== 0);
-            } else {
-                const turn = firstDifference.subtract(secondDifference);
-                
-                drawLine([ctx, tileSize, snake.cells[i], (turn.x-1)/-2, 0, 0, 1]);
-                drawLine([ctx, tileSize, snake.cells[i], 0, (turn.y-1)/-2, 1, 0]);
-            }
-        }
+        drawLine([
+          context,
+          tileSize,
+          snake.cells[cellIndex],
+          (turnType.x - 1) / -2,
+          0,
+          0,
+          1,
+        ]);
+        drawLine([
+          context,
+          tileSize,
+          snake.cells[cellIndex],
+          0,
+          (turnType.y - 1) / -2,
+          1,
+          0,
+        ]);
+      }
     }
-    
-    ctx.beginPath();
-    ctx.arc((apple.x + 0.5) * tileSize, (apple.y + 0.5) * tileSize, tileSize / 8, 0, 360)
-    ctx.fill();
-}
+  }
+
+  context.beginPath();
+  context.arc(
+    (applePosition.x + 0.5) * tileSize,
+    (applePosition.y + 0.5) * tileSize,
+    tileSize / 8,
+    0,
+    360
+  );
+  context.fill();
+};
 
 const endScreen = (score) => {
-    document.getElementById('end-screen').removeAttribute('closed');
-    document.getElementById('score').textContent = score;
-}
+  document.getElementById("end-screen").removeAttribute("closed");
+  document.getElementById("score").textContent = score;
+};
 
 const reset = () => {
-    document.getElementById('end-screen').setAttribute('closed', 'true');
-    snake = new Snake(new Vec(Math.floor(SIZE/2), Math.floor(SIZE/2)), () => {
-        endScreen(snake.length);
-    }); 
-    apple = applePosition(snake);
-    updateCanvas();
-    // TODO: save highscores
-}
+  document.getElementById("end-screen").setAttribute("closed", "true");
+  snake = new Snake(
+    new Vec(Math.floor(TILES / 2), Math.floor(TILES / 2)),
+    () => {
+      endScreen(snake.length);
+    }
+  );
+  applePosition = positionApple(snake);
+  updateCanvas();
+  // TODO: save highscores
+};
