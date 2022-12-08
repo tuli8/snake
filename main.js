@@ -1,8 +1,9 @@
 const TILES = 11; // TODO: make TILES changable
-const FPS = 2; // TODO: make fps changable
+const FPS = 7; // TODO: make fps changable
 const GRID_COLOR = "#4d4d4d";
 const APPLE_COLOR = "white";
 const SNAKE_COLOR = "white";
+const HEIGHT_PERCENT = 70;
 
 let snake = new Snake(
   new Vec(Math.floor(TILES / 2), Math.floor(TILES / 2)),
@@ -35,6 +36,13 @@ const positionApple = (snake) => {
 let applePosition = positionApple(snake);
 
 window.onload = () => {
+  document.getElementById("canvas").width = Math.floor(
+    (HEIGHT_PERCENT / 100) * window.innerHeight
+  );
+  document.getElementById("canvas").height = Math.floor(
+    (HEIGHT_PERCENT / 100) * window.innerHeight
+  );
+
   window.addEventListener("keydown", (event) => {
     try {
       switch (event.code) {
