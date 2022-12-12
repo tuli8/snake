@@ -5,12 +5,17 @@ const APPLE_COLOR = "white";
 const SNAKE_COLOR = "white";
 const HEIGHT_PERCENT = 70;
 
-let snake = new Snake(
-  new Vec(Math.floor(TILES / 2), Math.floor(TILES / 2)),
-  () => {
-    endScreen(snake.length);
-  }
-);
+const createSnake = () => {
+  return new Snake(
+    new Vec(Math.floor(TILES / 2), Math.floor(TILES / 2)),
+    () => {
+      endScreen(snake.length);
+      pauseGame();
+    }
+  );
+};
+
+let snake = createSnake();
 
 const positionApple = (snake) => {
   const emptyCells = [];
@@ -34,6 +39,7 @@ const positionApple = (snake) => {
 };
 
 let applePosition = positionApple(snake);
+let gameLoopId;
 
 window.onload = () => {
   document.getElementById("canvas").width = Math.floor(
@@ -47,16 +53,24 @@ window.onload = () => {
     try {
       switch (event.code) {
         case "ArrowUp":
+        case "KeyW":
           snake.changeDirection(Snake.UP_DIRECTION);
+          startGame();
           break;
         case "ArrowDown":
+        case "KeyS":
           snake.changeDirection(Snake.DOWN_DIRECTION);
+          startGame();
           break;
         case "ArrowLeft":
+        case "KeyA":
           snake.changeDirection(Snake.LEFT_DIRECTION);
+          startGame();
           break;
         case "ArrowRight":
+        case "KeyD":
           snake.changeDirection(Snake.RIGHT_DIRECTION);
+          startGame();
           break;
       }
     } catch (error) {
@@ -67,14 +81,25 @@ window.onload = () => {
   document.getElementById("reset").onclick = reset;
 
   updateCanvas();
-  setInterval(() => {
-    if (snake.alive) {
-      updateGame();
-    }
-    if (snake.alive) {
-      updateCanvas();
-    }
-  }, (1 / FPS) * 1000);
+};
+
+const startGame = () => {
+  if (!gameLoopId) {
+    gameLoopId = setInterval(() => {
+      if (snake.alive) {
+        updateGame();
+      }
+      if (snake.alive) {
+        updateCanvas();
+      }
+    }, (1 / FPS) * 1000);
+  }
+};
+
+const pauseGame = () => {
+  console.log("pause");
+  clearInterval(gameLoopId);
+  gameLoopId = null;
 };
 
 const updateGame = () => {
@@ -242,12 +267,7 @@ const endScreen = (score) => {
 
 const reset = () => {
   document.getElementById("end-screen").setAttribute("closed", "true");
-  snake = new Snake(
-    new Vec(Math.floor(TILES / 2), Math.floor(TILES / 2)),
-    () => {
-      endScreen(snake.length);
-    }
-  );
+  snake = createSnake();
   applePosition = positionApple(snake);
   updateCanvas();
   // TODO: save highscores
