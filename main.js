@@ -105,8 +105,18 @@ const pauseGame = () => {
 };
 
 const updateScore = () => {
+  let score = snake.length;
+
   for (element of document.getElementsByTagName("score")) {
-    element.textContent = snake.length;
+    element.textContent = score;
+  }
+
+  if (score > localStorage.getItem("highscore")) {
+    localStorage.setItem("highscore", score);
+  }
+
+  for (element of document.getElementsByTagName("highscore")) {
+    element.textContent = localStorage.getItem("highscore");
   }
 };
 
