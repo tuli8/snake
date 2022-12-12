@@ -9,7 +9,7 @@ const createSnake = () => {
   return new Snake(
     new Vec(Math.floor(TILES / 2), Math.floor(TILES / 2)),
     () => {
-      endScreen(snake.length);
+      endScreen();
       pauseGame();
     }
   );
@@ -81,6 +81,7 @@ window.onload = () => {
   document.getElementById("reset").onclick = reset;
 
   updateCanvas();
+  updateScore();
 };
 
 const startGame = () => {
@@ -88,6 +89,7 @@ const startGame = () => {
     gameLoopId = setInterval(() => {
       if (snake.alive) {
         updateGame();
+        updateScore();
       }
       if (snake.alive) {
         updateCanvas();
@@ -100,6 +102,12 @@ const pauseGame = () => {
   console.log("pause");
   clearInterval(gameLoopId);
   gameLoopId = null;
+};
+
+const updateScore = () => {
+  for (element of document.getElementsByTagName("score")) {
+    element.textContent = snake.length;
+  }
 };
 
 const updateGame = () => {
@@ -260,9 +268,8 @@ const updateCanvas = () => {
   context.fill();
 };
 
-const endScreen = (score) => {
+const endScreen = () => {
   document.getElementById("end-screen").removeAttribute("closed");
-  document.getElementById("score").textContent = score;
 };
 
 const reset = () => {
@@ -270,5 +277,6 @@ const reset = () => {
   snake = createSnake();
   applePosition = positionApple(snake);
   updateCanvas();
+  updateScore();
   // TODO: save highscores
 };
