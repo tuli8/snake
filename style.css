@@ -33,12 +33,12 @@ popup {
 }
 
 popup h1 {
-    font-size: 3em;
-    color: #960000;
+    font-size: 2.5em;
 }
 
 popup h2 {
-    font-size: 2.5em;
+    font-size: 3em;
+    color: #960000;
 }
 
 popup[closed] {
