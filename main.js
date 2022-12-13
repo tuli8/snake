@@ -50,31 +50,33 @@ window.onload = () => {
   );
 
   window.addEventListener("keydown", (event) => {
-    try {
-      switch (event.code) {
-        case "ArrowUp":
-        case "KeyW":
-          snake.changeDirection(Snake.UP_DIRECTION);
-          startGame();
-          break;
-        case "ArrowDown":
-        case "KeyS":
-          snake.changeDirection(Snake.DOWN_DIRECTION);
-          startGame();
-          break;
-        case "ArrowLeft":
-        case "KeyA":
-          snake.changeDirection(Snake.LEFT_DIRECTION);
-          startGame();
-          break;
-        case "ArrowRight":
-        case "KeyD":
-          snake.changeDirection(Snake.RIGHT_DIRECTION);
-          startGame();
-          break;
+    if (snake.alive) {
+      try {
+        switch (event.code) {
+          case "ArrowUp":
+          case "KeyW":
+            snake.changeDirection(Snake.UP_DIRECTION);
+            startGame();
+            break;
+          case "ArrowDown":
+          case "KeyS":
+            snake.changeDirection(Snake.DOWN_DIRECTION);
+            startGame();
+            break;
+          case "ArrowLeft":
+          case "KeyA":
+            snake.changeDirection(Snake.LEFT_DIRECTION);
+            startGame();
+            break;
+          case "ArrowRight":
+          case "KeyD":
+            snake.changeDirection(Snake.RIGHT_DIRECTION);
+            startGame();
+            break;
+        }
+      } catch (error) {
+        console.log(error.message);
       }
-    } catch (error) {
-      console.log(error.message);
     }
   });
 
