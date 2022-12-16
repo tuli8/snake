@@ -23,26 +23,26 @@ container {
 popup {
     position: absolute;
     width: 32%;
-    height: 30%;
-    bottom: 60%;
+    height: 20vw;
+    top: 30%;
     left: 34%;
     background-color: #2e2e2e;
     border-radius: 50px 5px 50px 5px;
     text-align: center;
-    transition: ease-in-out bottom 0.4s;
+    transition: ease-in-out top 0.4s;
 }
 
-popup h1 {
-    font-size: 2.5em;
+popup h1, score-container h1 {
+    font-size: 2vw;
 }
 
-popup h2 {
-    font-size: 3em;
+popup h2, score-container h2 {
+    font-size: 1.8vw;
     color: #960000;
 }
 
 popup[closed] {
-    bottom: 100%;
+    top: -20vw;
 }
 
 score {
@@ -50,7 +50,7 @@ score {
 }
 
 popup button {
-    font-size: 2em;
+    font-size: 2vw;
     background-color: #222222;
     color: inherit;
     border: 0;
@@ -70,10 +70,9 @@ popup button:hover {
 .score-tile, .highscore-tile {
     line-height: 0;
     margin: 0;
-    padding: 40px;
-    padding-left: 60px;
-    clip-path: polygon(0 0, 100% 0, 100% 100%, 30px 100%);
-    box-sizing: border-box;
+    padding: 3vw;
+    padding-left: 4.5vw;
+    clip-path: polygon(0 0, 100% 0, 100% 100%, 2.25vw 100%);
 }
 
 .highscore-tile {

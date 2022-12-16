@@ -4,6 +4,7 @@ const GRID_COLOR = "#4d4d4d";
 const APPLE_COLOR = "white";
 const SNAKE_COLOR = "white";
 const HEIGHT_PERCENT = 70;
+const WIDTH_PERCENT = 80;
 
 const createSnake = () => {
   return new Snake(
@@ -42,12 +43,14 @@ let applePosition = positionApple(snake);
 let gameLoopId;
 
 window.onload = () => {
-  document.getElementById("canvas").width = Math.floor(
-    (HEIGHT_PERCENT / 100) * window.innerHeight
+  const width = Math.floor(
+    Math.min(
+      (HEIGHT_PERCENT / 100) * window.innerHeight,
+      (WIDTH_PERCENT / 100) * window.innerWidth
+    )
   );
-  document.getElementById("canvas").height = Math.floor(
-    (HEIGHT_PERCENT / 100) * window.innerHeight
-  );
+  document.getElementById("canvas").width = width;
+  document.getElementById("canvas").height = width;
 
   window.addEventListener("keydown", (event) => {
     if (snake.alive) {
