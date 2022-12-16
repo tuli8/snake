@@ -83,10 +83,58 @@ window.onload = () => {
     }
   });
 
+  window.addEventListener("touchstart", handleTouchStart);
+  window.addEventListener("touchend", handleTouchEnd);
+
   document.getElementById("reset").onclick = reset;
 
   updateCanvas();
   updateScore();
+};
+
+let touches = [];
+
+const handleTouchStart = (e) => {
+  for (let touch of e.changedTouches) {
+    touches.push({ id: touch.identifier, x: touch.screenX, y: touch.screenY });
+  }
+};
+
+const handleTouchEnd = (e) => {
+  for (let i = 0; i < e.changedTouches.length; i++) {
+    let removedTouchIndex = touches.findIndex(
+      (element) => element.id === e.changedTouches[i].identifier
+    );
+    let difference = new Vec(
+      e.changedTouches[i].screenX - touches[removedTouchIndex].x,
+      e.changedTouches[i].screenY - touches[removedTouchIndex].y
+    );
+    touches = [
+      ...touches.slice(0, removedTouchIndex),
+      ...touches.slice(removedTouchIndex + 1),
+    ];
+    try {
+      if (Math.abs(difference.x) > Math.abs(difference.y)) {
+        if (difference.x > 0) {
+          snake.changeDirection(Snake.RIGHT_DIRECTION);
+          startGame();
+        } else {
+          snake.changeDirection(Snake.LEFT_DIRECTION);
+          startGame();
+        }
+      } else {
+        if (difference.y > 0) {
+          snake.changeDirection(Snake.DOWN_DIRECTION);
+          startGame();
+        } else {
+          snake.changeDirection(Snake.UP_DIRECTION);
+          startGame();
+        }
+      }
+    } catch (error) {
+      console.log(error.message);
+    }
+  }
 };
 
 const startGame = () => {
