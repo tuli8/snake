@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>
+            snake
+        </title>
+        <link rel="stylesheet" href="./style.css"/>
+    </head>
+    <body>
+        <h1>Welcome to <strong>Snake</strong></h1>
+        <container>
+            <canvas id="canvas" width="700" height="700"></canvas>
+        </container>
+        <score-container>
+            <h1 class="highscore-tile">Highscore: <highscore></highscore></h1>
+            <h1 class="score-tile">Score: <score></score></h1>
+        </score-container>
+        <popup id="end-screen" closed>
+            <h2>You Died</h2>
+            <h1>Highscore: <highscore></highscore></h1>
+            <h1>Score: <score></score></h1>
+            <button id="reset">Try Again</button>
+        </popup>
+        <script src="vector.js"></script>
+        <script src="snake.js"></script>
+        <script src="main.js" > </script>
+    </body>
+</html>
