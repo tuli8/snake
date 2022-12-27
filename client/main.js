@@ -6,6 +6,11 @@ const SNAKE_COLOR = "white";
 const HEIGHT_PERCENT = 70;
 const WIDTH_PERCENT = 80;
 
+let socket = window.io.connect('http://localhost:3000');
+socket.on('connect', () => {
+  console.log('connected to server');
+});
+
 const createSnake = () => {
   return new Snake(
     new Vec(Math.floor(TILES / 2), Math.floor(TILES / 2)),
