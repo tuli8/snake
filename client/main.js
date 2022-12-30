@@ -1,51 +1,27 @@
-const TILES = 11; // TODO: make TILES changable
-const FPS = 7; // TODO: make fps changable
+const TILES = 11;// TODO: fetch from server
+const FPS = 7;// TODO: fetch from server
 const GRID_COLOR = "#4d4d4d";
 const APPLE_COLOR = "white";
 const SNAKE_COLOR = "white";
 const HEIGHT_PERCENT = 70;
 const WIDTH_PERCENT = 80;
+const DEFAULT_SCORE = 1;
 
 let socket = window.io.connect('http://localhost:3000');
 socket.on('connect', () => {
   console.log('connected to server');
 });
 
-const createSnake = () => {
-  return new Snake(
-    new Vec(Math.floor(TILES / 2), Math.floor(TILES / 2)),
-    () => {
-      endScreen();
-      pauseGame();
-    }
-  );
-};
+socket.on('game', game => {
+  snake = new Snake(game.snake);
+  score = game.score;
+  applePosition = new Vec(game.apple.x, game.apple.y);
+  updateCanvas();
+  updateScore();
+});
 
-let snake = createSnake();
-
-const positionApple = (snake) => {
-  const emptyCells = [];
-
-  for (let rowIndex = 0; rowIndex < TILES; rowIndex++) {
-    for (let columnIndex = 0; columnIndex < TILES; columnIndex++) {
-      emptyCells.push(new Vec(rowIndex, columnIndex));
-    }
-  }
-
-  for (let cell of snake.cells) {
-    const index = emptyCells
-      .map((element) => cell.equals(element))
-      .indexOf(true);
-    if (index > -1) {
-      emptyCells.splice(index, 1);
-    }
-  }
-
-  return emptyCells[Math.floor(Math.random() * emptyCells.length)];
-};
-
-let applePosition = positionApple(snake);
-let gameLoopId;
+let snake;
+let applePosition;
 
 window.onload = () => {
   const width = Math.floor(
@@ -58,28 +34,24 @@ window.onload = () => {
   document.getElementById("canvas").height = width;
 
   window.addEventListener("keydown", (event) => {
-    if (snake.alive) {
+    if (/*snake.alive*/ true) {
       try {
         switch (event.code) {
           case "ArrowUp":
           case "KeyW":
-            snake.changeDirection(Snake.UP_DIRECTION);
-            startGame();
+            socket.emit('input', 'up');
             break;
           case "ArrowDown":
           case "KeyS":
-            snake.changeDirection(Snake.DOWN_DIRECTION);
-            startGame();
+            socket.emit('input', 'down');
             break;
           case "ArrowLeft":
           case "KeyA":
-            snake.changeDirection(Snake.LEFT_DIRECTION);
-            startGame();
+            socket.emit('input', 'left');
             break;
           case "ArrowRight":
           case "KeyD":
-            snake.changeDirection(Snake.RIGHT_DIRECTION);
-            startGame();
+            socket.emit('input', 'right');
             break;
         }
       } catch (error) {
@@ -121,19 +93,15 @@ const handleTouchEnd = (e) => {
     try {
       if (Math.abs(difference.x) > Math.abs(difference.y)) {
         if (difference.x > 0) {
-          snake.changeDirection(Snake.RIGHT_DIRECTION);
-          startGame();
+          socket.emit('input', 'right');
         } else {
-          snake.changeDirection(Snake.LEFT_DIRECTION);
-          startGame();
+          socket.emit('input', 'left');
         }
       } else {
         if (difference.y > 0) {
-          snake.changeDirection(Snake.DOWN_DIRECTION);
-          startGame();
+          socket.emit('input', 'down');
         } else {
-          snake.changeDirection(Snake.UP_DIRECTION);
-          startGame();
+          socket.emit('input', 'up');
         }
       }
     } catch (error) {
@@ -142,7 +110,7 @@ const handleTouchEnd = (e) => {
   }
 };
 
-const startGame = () => {
+/*const startGame = () => {
   if (!gameLoopId) {
     gameLoopId = setInterval(() => {
       if (snake.alive) {
@@ -154,16 +122,16 @@ const startGame = () => {
       }
     }, (1 / FPS) * 1000);
   }
-};
+};*/
 
-const pauseGame = () => {
+/*const pauseGame = () => {
   console.log("pause");
   clearInterval(gameLoopId);
   gameLoopId = null;
-};
+};*/
 
 const updateScore = () => {
-  let score = snake.length;
+  //let score = snake?.length || DEFAULT_SCORE;
 
   for (element of document.getElementsByTagName("score")) {
     element.textContent = score;
@@ -178,7 +146,7 @@ const updateScore = () => {
   }
 };
 
-const updateGame = () => {
+/*const updateGame = () => {
   const generatorObj = snake.moveSnake();
   generatorObj.next();
 
@@ -198,7 +166,7 @@ const updateGame = () => {
   } else {
     generatorObj.next(true);
   }
-};
+};*/
 
 const drawLine = ([
   context,
@@ -269,82 +237,86 @@ const updateCanvas = () => {
       );
     }
   }
-
-  context.strokeStyle = SNAKE_COLOR;
-  context.fillStyle = APPLE_COLOR;
-
-  if (snake.length === 1) {
-    context.strokeRect(
-      snake.head.x * tileSize,
-      snake.head.y * tileSize,
-      tileSize,
-      tileSize
-    );
-  } else {
-    const headDirection = snake.head.subtract(snake.cells[1]);
-    drawThreeQuarterSquare(context, tileSize, headDirection, snake.head);
-
-    const tailDirection = snake.tail.subtract(snake.cells[snake.length - 2]);
-    drawThreeQuarterSquare(context, tileSize, tailDirection, snake.tail);
-
-    for (let cellIndex = 1; cellIndex < snake.cells.length - 1; cellIndex++) {
-      const firstDifference = snake.cells[cellIndex - 1].subtract(
-        snake.cells[cellIndex]
+  if (snake) {
+    context.strokeStyle = SNAKE_COLOR;
+    context.fillStyle = APPLE_COLOR;
+  
+    if (snake?.length === 1) {
+      context.strokeRect(
+        snake.head.x * tileSize,
+        snake.head.y * tileSize,
+        tileSize,
+        tileSize
       );
-      const secondDifference = snake.cells[cellIndex].subtract(
-        snake.cells[cellIndex + 1]
-      );
-
-      if (firstDifference.equals(secondDifference)) {
-        drawParallelLines(
-          [context, tileSize, snake.cells[cellIndex]],
-          firstDifference.x !== 0
+    } else {
+      const headDirection = snake.head.subtract(snake.cells[1]);
+      drawThreeQuarterSquare(context, tileSize, headDirection, snake.head);
+  
+      const tailDirection = snake.tail.subtract(snake.cells[snake.length - 2]);
+      drawThreeQuarterSquare(context, tileSize, tailDirection, snake.tail);
+  
+      for (let cellIndex = 1; cellIndex < snake.cells.length - 1; cellIndex++) {
+        const firstDifference = snake.cells[cellIndex - 1].subtract(
+          snake.cells[cellIndex]
         );
-      } else {
-        const turnType = firstDifference.subtract(secondDifference);
-
-        drawLine([
-          context,
-          tileSize,
-          snake.cells[cellIndex],
-          (turnType.x - 1) / -2,
-          0,
-          0,
-          1,
-        ]);
-        drawLine([
-          context,
-          tileSize,
-          snake.cells[cellIndex],
-          0,
-          (turnType.y - 1) / -2,
-          1,
-          0,
-        ]);
+        const secondDifference = snake.cells[cellIndex].subtract(
+          snake.cells[cellIndex + 1]
+        );
+  
+        if (firstDifference.equals(secondDifference)) {
+          drawParallelLines(
+            [context, tileSize, snake.cells[cellIndex]],
+            firstDifference.x !== 0
+          );
+        } else {
+          const turnType = firstDifference.subtract(secondDifference);
+  
+          drawLine([
+            context,
+            tileSize,
+            snake.cells[cellIndex],
+            (turnType.x - 1) / -2,
+            0,
+            0,
+            1,
+          ]);
+          drawLine([
+            context,
+            tileSize,
+            snake.cells[cellIndex],
+            0,
+            (turnType.y - 1) / -2,
+            1,
+            0,
+          ]);
+        }
       }
     }
   }
-
-  context.beginPath();
-  context.arc(
-    (applePosition.x + 0.5) * tileSize,
-    (applePosition.y + 0.5) * tileSize,
-    tileSize / 8,
-    0,
-    360
-  );
-  context.fill();
+  if (applePosition) {
+    context.beginPath();
+    context.arc(
+      (applePosition.x + 0.5) * tileSize,
+      (applePosition.y + 0.5) * tileSize,
+      tileSize / 8,
+      0,
+      360
+    );
+    context.fill();
+  }
 };
 
 const endScreen = () => {
   document.getElementById("end-screen").removeAttribute("closed");
 };
+socket.on('dead', endScreen);
 
 const reset = () => {
   document.getElementById("end-screen").setAttribute("closed", "true");
-  snake = createSnake();
+  socket.emit('reset');
+  /*snake = createSnake();
   applePosition = positionApple(snake);
   updateCanvas();
-  updateScore();
+  updateScore();*/
   // TODO: save highscores
 };

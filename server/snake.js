@@ -1,5 +1,7 @@
-class Snake {
-  /*static DOWN_DIRECTION = 0;
+const {Vec} = require('./vector.js');
+
+exports.Snake = class Snake {
+  static DOWN_DIRECTION = 0;
   static RIGHT_DIRECTION = 1;
   static UP_DIRECTION = 2;
   static LEFT_DIRECTION = 3;
@@ -9,22 +11,17 @@ class Snake {
     new Vec(1, 0),
     new Vec(0, -1),
     new Vec(-1, 0),
-  ];*/
+  ];
 
-  /*constructor(startingPos, deathListener) {
+  constructor(startingPos, deathListener) {
     this._cells = [startingPos];
     this._facing = 0;
     this._lastDirection = 0;
     this._deathListener = deathListener;
     this._alive = true;
-  }*/
-
-  constructor (otherSnake) {
-    this._cells = otherSnake.cells.map(cell => new Vec(cell.x, cell.y));
-    this._alive = otherSnake.alive;
   }
 
-  /*moveSnake = function* () {
+  moveSnake = function* () {
     if (!this._alive) {
       return;
     }
@@ -38,23 +35,23 @@ class Snake {
     }
 
     this._checkHeadRoom();
-  };*/
+  };
 
   get length() {
     return this._cells.length;
   }
 
-  /*_checkHeadRoom() {
+  _checkHeadRoom() {
     if (this._cells.filter((cell) => cell.equals(this.head)).length > 1) {
       this._alive = false;
       this._deathListener();
     }
-  }*/
+  }
 
-  /*kill() {
+  kill() {
     this._alive = false;
     this._deathListener();
-  }*/
+  }
 
   get alive() {
     return this._alive;
@@ -72,7 +69,7 @@ class Snake {
     return this._cells[this.length - 1];
   }
 
-  /*changeDirection(newDirection) {
+  changeDirection(newDirection) {
     if (
       newDirection >= 0 &&
       newDirection <= 3 &&
@@ -82,5 +79,12 @@ class Snake {
     } else {
       throw Error("illigal direction");
     }
-  }*/
+  }
+
+  get json() {
+    return {
+      cells: this.cells.map(cell => cell.json),
+      alive: this.alive,
+    };
+  }
 }
