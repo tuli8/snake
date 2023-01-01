@@ -52,24 +52,28 @@ app.use(function (err, req, res, next) {
 server.listen(port);
 
 const TILES = 11; // TODO: make TILES changable
-const FPS = 7; // TODO: make fps changable
-const {Snake} = require('./snake.js');
-const {Vec} = require('./vector.js');
+const FPS = 1//7; // TODO: make fps changable
+const { Snake } = require('./snake.js');
+const { Vec } = require('./vector.js');
 
-const createSnake = () => {
+const createSnake = (ownerId) => {
   return new Snake(
     new Vec(Math.floor(TILES / 2), Math.floor(TILES / 2)),
     () => {
-      pauseGame();
       console.log('dead');
-      io.emit('dead');
+      io.to(ownerId).emit('dead');
+      snakes = Object.keys(snakes).filter(key => key !== ownerId).reduce( (obj, key) => {
+        obj[key] = snakes[key];
+        return obj;
+      }, {});
     }
   );
 };
 
-let snake = createSnake();
+//let snake = createSnake();
+let snakes = {};
 
-const positionApple = (snake) => {
+const positionApple = (snakes) => {
   const emptyCells = [];
 
   for (let rowIndex = 0; rowIndex < TILES; rowIndex++) {
@@ -78,70 +82,87 @@ const positionApple = (snake) => {
     }
   }
 
-  for (let cell of snake.cells) {
-    const index = emptyCells
-      .map((element) => cell.equals(element))
-      .indexOf(true);
-    if (index > -1) {
-      emptyCells.splice(index, 1);
+  for (let snake of Object.values(snakes)) {
+    for (let cell of snake.cells) {
+      const index = emptyCells
+        .map((element) => cell.equals(element))
+        .indexOf(true);
+      if (index > -1) {
+        emptyCells.splice(index, 1);
+      }
     }
   }
 
   return emptyCells[Math.floor(Math.random() * emptyCells.length)];
 };
 
-let applePosition = positionApple(snake);
-let gameLoopId;
+let applePosition = positionApple(snakes);
+//let gameLoopId;
 
-const startGame = () => {
+/*const startGame = () => {
   if (!gameLoopId) {
     gameLoopId = setInterval(() => {
-      if (snake.alive) {
+      if (Object.values(snakes).filter(snake => snake.alive).length > 0) {
         updateGame();
       }
     }, (1 / FPS) * 1000);
   }
-};
+};*/
 
-const pauseGame = () => {
+setInterval(() => {
+  if (Object.values(snakes).filter(snake => snake.alive).length > 0) {
+    updateGame();
+  }
+}, (1 / FPS) * 1000);
+
+/*const pauseGame = () => {
   clearInterval(gameLoopId);
   gameLoopId = null;
-};
+};*/
 
 const emitGame = (socket) => {
-  if (snake.alive) {
-    socket.emit('game', {snake: snake.json, score: snake.length, apple: applePosition.json});
+  if (Object.values(snakes).filter(snake => snake.alive).length > 0) {
+    socket.emit('game', {
+      snakes: Object.values(snakes).map(snake => snake.json),
+      score: snakes[socket.id]?.length,
+      apple: applePosition.json
+    });
   }
 };
 
 const updateGame = () => {
-  const generatorObj = snake.moveSnake();
-  generatorObj.next();
-
-  if (
-    snake.head.x < 0 ||
-    snake.head.x >= TILES ||
-    snake.head.y < 0 ||
-    snake.head.y >= TILES
-  ) {
-    generatorObj.next(true);
-    snake.kill();
-  }
-
-  if (snake.head.equals(applePosition)) {
-    generatorObj.next(false);
-    applePosition = positionApple(snake);
-  } else {
-    generatorObj.next(true);
+  for (let snake of Object.values(snakes)) {
+    // TODO: take care of two snakes killing each other
+    const generatorObj = snake.moveSnake();
+    generatorObj.next();
+  
+    if (
+      snake.head.x < 0 ||
+      snake.head.x >= TILES ||
+      snake.head.y < 0 ||
+      snake.head.y >= TILES
+    ) {
+      generatorObj.next(true);
+      snake.kill();
+    }
+  
+    if (snake.head.equals(applePosition)) {
+      generatorObj.next(false);
+      applePosition = positionApple(snakes);
+    } else {
+      generatorObj.next(true);
+    }
   }
 
   emitGame(io);
 };
 
 
-const reset = () => {
-  snake = createSnake();
-  applePosition = positionApple(snake);
+const reset = (socketId) => {
+  //TODO: create reset
+  //snakes.push(createSnake());
+  snakes[socketId] = createSnake(socketId);
+  //applePosition = positionApple(snake);
   emitGame(io);
   // TODO: save highscores
 };
@@ -150,28 +171,29 @@ let users = [];
 
 io.on('connection', socket => {
   console.log('new user has connected');
+  snakes[socket.id] = createSnake(socket.id);
   emitGame(socket);
   users.push(socket.id);
   socket.on('input', input => {
     console.log(`input ${input}`);
-    if (snake.alive) {
+    if (snakes[socket.id]?.alive) {
       try {
         switch (input) {
           case "up":
-            snake.changeDirection(Snake.UP_DIRECTION);
-            startGame();
+            snakes[socket.id].changeDirection(Snake.UP_DIRECTION);
+            //startGame();
             break;
           case "down":
-            snake.changeDirection(Snake.DOWN_DIRECTION);
-            startGame();
+            snakes[socket.id].changeDirection(Snake.DOWN_DIRECTION);
+            //startGame();
             break;
           case "left":
-            snake.changeDirection(Snake.LEFT_DIRECTION);
-            startGame();
+            snakes[socket.id].changeDirection(Snake.LEFT_DIRECTION);
+            //startGame();
             break;
           case "right":
-            snake.changeDirection(Snake.RIGHT_DIRECTION);
-            startGame();
+            snakes[socket.id].changeDirection(Snake.RIGHT_DIRECTION);
+            //startGame();
             break;
         }
       } catch (error) {
@@ -179,8 +201,8 @@ io.on('connection', socket => {
       }
     }
   });
-  
-  socket.on('reset', reset);
+
+  socket.on('reset', () => reset(socket.id));
 
   socket.on('disconnect', () => {
     console.log('disconnected from user');

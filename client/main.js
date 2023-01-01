@@ -13,14 +13,14 @@ socket.on('connect', () => {
 });
 
 socket.on('game', game => {
-  snake = new Snake(game.snake);
+  snakes = game.snakes.map(snake => new Snake(snake));
   score = game.score;
   applePosition = new Vec(game.apple.x, game.apple.y);
   updateCanvas();
   updateScore();
 });
 
-let snake;
+let snakes = [];
 let applePosition;
 
 window.onload = () => {
@@ -237,58 +237,60 @@ const updateCanvas = () => {
       );
     }
   }
-  if (snake) {
+  if (snakes.length > 0) {
     context.strokeStyle = SNAKE_COLOR;
     context.fillStyle = APPLE_COLOR;
-  
-    if (snake?.length === 1) {
-      context.strokeRect(
-        snake.head.x * tileSize,
-        snake.head.y * tileSize,
-        tileSize,
-        tileSize
-      );
-    } else {
-      const headDirection = snake.head.subtract(snake.cells[1]);
-      drawThreeQuarterSquare(context, tileSize, headDirection, snake.head);
-  
-      const tailDirection = snake.tail.subtract(snake.cells[snake.length - 2]);
-      drawThreeQuarterSquare(context, tileSize, tailDirection, snake.tail);
-  
-      for (let cellIndex = 1; cellIndex < snake.cells.length - 1; cellIndex++) {
-        const firstDifference = snake.cells[cellIndex - 1].subtract(
-          snake.cells[cellIndex]
+    
+    for (let snake of snakes) {
+      if (snake?.length === 1) {
+        context.strokeRect(
+          snake.head.x * tileSize,
+          snake.head.y * tileSize,
+          tileSize,
+          tileSize
         );
-        const secondDifference = snake.cells[cellIndex].subtract(
-          snake.cells[cellIndex + 1]
-        );
-  
-        if (firstDifference.equals(secondDifference)) {
-          drawParallelLines(
-            [context, tileSize, snake.cells[cellIndex]],
-            firstDifference.x !== 0
+      } else {
+        const headDirection = snake.head.subtract(snake.cells[1]);
+        drawThreeQuarterSquare(context, tileSize, headDirection, snake.head);
+    
+        const tailDirection = snake.tail.subtract(snake.cells[snake.length - 2]);
+        drawThreeQuarterSquare(context, tileSize, tailDirection, snake.tail);
+    
+        for (let cellIndex = 1; cellIndex < snake.cells.length - 1; cellIndex++) {
+          const firstDifference = snake.cells[cellIndex - 1].subtract(
+            snake.cells[cellIndex]
           );
-        } else {
-          const turnType = firstDifference.subtract(secondDifference);
-  
-          drawLine([
-            context,
-            tileSize,
-            snake.cells[cellIndex],
-            (turnType.x - 1) / -2,
-            0,
-            0,
-            1,
-          ]);
-          drawLine([
-            context,
-            tileSize,
-            snake.cells[cellIndex],
-            0,
-            (turnType.y - 1) / -2,
-            1,
-            0,
-          ]);
+          const secondDifference = snake.cells[cellIndex].subtract(
+            snake.cells[cellIndex + 1]
+          );
+    
+          if (firstDifference.equals(secondDifference)) {
+            drawParallelLines(
+              [context, tileSize, snake.cells[cellIndex]],
+              firstDifference.x !== 0
+            );
+          } else {
+            const turnType = firstDifference.subtract(secondDifference);
+    
+            drawLine([
+              context,
+              tileSize,
+              snake.cells[cellIndex],
+              (turnType.x - 1) / -2,
+              0,
+              0,
+              1,
+            ]);
+            drawLine([
+              context,
+              tileSize,
+              snake.cells[cellIndex],
+              0,
+              (turnType.y - 1) / -2,
+              1,
+              0,
+            ]);
+          }
         }
       }
     }
