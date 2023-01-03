@@ -1,5 +1,5 @@
-const TILES = 11;// TODO: fetch from server
-const FPS = 7;// TODO: fetch from server
+const TILES = 11; // TODO: fetch from server
+const FPS = 7; // TODO: fetch from server
 const GRID_COLOR = "#4d4d4d";
 const APPLE_COLOR = "white";
 const SNAKE_COLOR = "white";
@@ -7,17 +7,16 @@ const HEIGHT_PERCENT = 70;
 const WIDTH_PERCENT = 80;
 const DEFAULT_SCORE = 1;
 
-let socket = window.io.connect('http://localhost:3000');
-socket.on('connect', () => {
-  console.log('connected to server');
+let socket = window.io.connect("http://localhost:3000");
+socket.on("connect", () => {
+  console.log("connected to server");
 });
 
-socket.on('game', game => {
-  snakes = game.snakes.map(snake => new Snake(snake));
-  score = game.score;
+socket.on("game", (game) => {
+  snakes = game.snakes.map((snake) => new Snake(snake));
   applePosition = new Vec(game.apple.x, game.apple.y);
   updateCanvas();
-  updateScore();
+  updateScore(game.score);
 });
 
 let snakes = [];
@@ -39,19 +38,19 @@ window.onload = () => {
         switch (event.code) {
           case "ArrowUp":
           case "KeyW":
-            socket.emit('input', 'up');
+            socket.emit("input", "up");
             break;
           case "ArrowDown":
           case "KeyS":
-            socket.emit('input', 'down');
+            socket.emit("input", "down");
             break;
           case "ArrowLeft":
           case "KeyA":
-            socket.emit('input', 'left');
+            socket.emit("input", "left");
             break;
           case "ArrowRight":
           case "KeyD":
-            socket.emit('input', 'right');
+            socket.emit("input", "right");
             break;
         }
       } catch (error) {
@@ -66,7 +65,6 @@ window.onload = () => {
   document.getElementById("reset").onclick = reset;
 
   updateCanvas();
-  updateScore();
 };
 
 let touches = [];
@@ -93,15 +91,15 @@ const handleTouchEnd = (e) => {
     try {
       if (Math.abs(difference.x) > Math.abs(difference.y)) {
         if (difference.x > 0) {
-          socket.emit('input', 'right');
+          socket.emit("input", "right");
         } else {
-          socket.emit('input', 'left');
+          socket.emit("input", "left");
         }
       } else {
         if (difference.y > 0) {
-          socket.emit('input', 'down');
+          socket.emit("input", "down");
         } else {
-          socket.emit('input', 'up');
+          socket.emit("input", "up");
         }
       }
     } catch (error) {
@@ -130,7 +128,7 @@ const handleTouchEnd = (e) => {
   gameLoopId = null;
 };*/
 
-const updateScore = () => {
+const updateScore = (score) => {
   //let score = snake?.length || DEFAULT_SCORE;
 
   for (element of document.getElementsByTagName("score")) {
@@ -240,7 +238,7 @@ const updateCanvas = () => {
   if (snakes.length > 0) {
     context.strokeStyle = SNAKE_COLOR;
     context.fillStyle = APPLE_COLOR;
-    
+
     for (let snake of snakes) {
       if (snake?.length === 1) {
         context.strokeRect(
@@ -252,18 +250,24 @@ const updateCanvas = () => {
       } else {
         const headDirection = snake.head.subtract(snake.cells[1]);
         drawThreeQuarterSquare(context, tileSize, headDirection, snake.head);
-    
-        const tailDirection = snake.tail.subtract(snake.cells[snake.length - 2]);
+
+        const tailDirection = snake.tail.subtract(
+          snake.cells[snake.length - 2]
+        );
         drawThreeQuarterSquare(context, tileSize, tailDirection, snake.tail);
-    
-        for (let cellIndex = 1; cellIndex < snake.cells.length - 1; cellIndex++) {
+
+        for (
+          let cellIndex = 1;
+          cellIndex < snake.cells.length - 1;
+          cellIndex++
+        ) {
           const firstDifference = snake.cells[cellIndex - 1].subtract(
             snake.cells[cellIndex]
           );
           const secondDifference = snake.cells[cellIndex].subtract(
             snake.cells[cellIndex + 1]
           );
-    
+
           if (firstDifference.equals(secondDifference)) {
             drawParallelLines(
               [context, tileSize, snake.cells[cellIndex]],
@@ -271,7 +275,7 @@ const updateCanvas = () => {
             );
           } else {
             const turnType = firstDifference.subtract(secondDifference);
-    
+
             drawLine([
               context,
               tileSize,
@@ -311,11 +315,11 @@ const updateCanvas = () => {
 const endScreen = () => {
   document.getElementById("end-screen").removeAttribute("closed");
 };
-socket.on('dead', endScreen);
+socket.on("dead", endScreen);
 
 const reset = () => {
   document.getElementById("end-screen").setAttribute("closed", "true");
-  socket.emit('reset');
+  socket.emit("reset");
   /*snake = createSnake();
   applePosition = positionApple(snake);
   updateCanvas();

@@ -4,8 +4,8 @@ var path = require("path");
 var cookieParser = require("cookie-parser");
 var logger = require("morgan");
 
-const socketIO = require('socket.io');
-const http = require('http');
+const socketIO = require("socket.io");
+const http = require("http");
 const port = 3000;
 
 var indexRouter = require("./routes/index");
@@ -16,8 +16,8 @@ var app = express();
 let server = http.createServer(app);
 let io = socketIO(server, {
   cors: {
-    origin: '*'
-  }
+    origin: "*",
+  },
 });
 
 // view engine setup
@@ -52,20 +52,22 @@ app.use(function (err, req, res, next) {
 server.listen(port);
 
 const TILES = 11; // TODO: make TILES changable
-const FPS = 1//7; // TODO: make fps changable
-const { Snake } = require('./snake.js');
-const { Vec } = require('./vector.js');
+const FPS = 1; //7; // TODO: make fps changable
+const { Snake } = require("./snake.js");
+const { Vec } = require("./vector.js");
 
 const createSnake = (ownerId) => {
   return new Snake(
     new Vec(Math.floor(TILES / 2), Math.floor(TILES / 2)),
     () => {
-      console.log('dead');
-      io.to(ownerId).emit('dead');
-      snakes = Object.keys(snakes).filter(key => key !== ownerId).reduce( (obj, key) => {
-        obj[key] = snakes[key];
-        return obj;
-      }, {});
+      console.log("dead");
+      io.to(ownerId).emit("dead");
+      snakes = Object.keys(snakes)
+        .filter((key) => key !== ownerId)
+        .reduce((obj, key) => {
+          obj[key] = snakes[key];
+          return obj;
+        }, {});
     }
   );
 };
@@ -110,7 +112,7 @@ let applePosition = positionApple(snakes);
 };*/
 
 setInterval(() => {
-  if (Object.values(snakes).filter(snake => snake.alive).length > 0) {
+  if (Object.values(snakes).filter((snake) => snake.alive).length > 0) {
     updateGame();
   }
 }, (1 / FPS) * 1000);
@@ -120,12 +122,23 @@ setInterval(() => {
   gameLoopId = null;
 };*/
 
+const emitGameToAll = (io) => {
+  if (Object.values(snakes).filter((snake) => snake.alive).length > 0) {
+    for (let client of users) {
+      io.to(client).emit("game", {
+        snakes: Object.values(snakes).map((snake) => snake.json),
+        score: snakes[client]?.length,
+        apple: applePosition.json,
+      });
+    }
+  }
+};
 const emitGame = (socket) => {
-  if (Object.values(snakes).filter(snake => snake.alive).length > 0) {
-    socket.emit('game', {
-      snakes: Object.values(snakes).map(snake => snake.json),
+  if (Object.values(snakes).filter((snake) => snake.alive).length > 0) {
+    socket.emit("game", {
+      snakes: Object.values(snakes).map((snake) => snake.json),
       score: snakes[socket.id]?.length,
-      apple: applePosition.json
+      apple: applePosition.json,
     });
   }
 };
@@ -135,7 +148,7 @@ const updateGame = () => {
     // TODO: take care of two snakes killing each other
     const generatorObj = snake.moveSnake();
     generatorObj.next();
-  
+
     if (
       snake.head.x < 0 ||
       snake.head.x >= TILES ||
@@ -145,7 +158,7 @@ const updateGame = () => {
       generatorObj.next(true);
       snake.kill();
     }
-  
+
     if (snake.head.equals(applePosition)) {
       generatorObj.next(false);
       applePosition = positionApple(snakes);
@@ -154,27 +167,26 @@ const updateGame = () => {
     }
   }
 
-  emitGame(io);
+  emitGameToAll(io);
 };
-
 
 const reset = (socketId) => {
   //TODO: create reset
   //snakes.push(createSnake());
   snakes[socketId] = createSnake(socketId);
   //applePosition = positionApple(snake);
-  emitGame(io);
+  emitGameToAll(io);
   // TODO: save highscores
 };
 
 let users = [];
 
-io.on('connection', socket => {
-  console.log('new user has connected');
+io.on("connection", (socket) => {
+  console.log("new user has connected");
   snakes[socket.id] = createSnake(socket.id);
   emitGame(socket);
   users.push(socket.id);
-  socket.on('input', input => {
+  socket.on("input", (input) => {
     console.log(`input ${input}`);
     if (snakes[socket.id]?.alive) {
       try {
@@ -202,11 +214,11 @@ io.on('connection', socket => {
     }
   });
 
-  socket.on('reset', () => reset(socket.id));
+  socket.on("reset", () => reset(socket.id));
 
-  socket.on('disconnect', () => {
-    console.log('disconnected from user');
-    users = users.filter(user => user !== socket.id);
+  socket.on("disconnect", () => {
+    console.log("disconnected from user");
+    users = users.filter((user) => user !== socket.id);
   });
 });
 
