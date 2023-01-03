@@ -1,4 +1,4 @@
-const {Vec} = require('./vector.js');
+const { Vec } = require("./vector.js");
 
 exports.Snake = class Snake {
   static DOWN_DIRECTION = 0;
@@ -43,8 +43,7 @@ exports.Snake = class Snake {
 
   _checkHeadRoom() {
     if (this._cells.filter((cell) => cell.equals(this.head)).length > 1) {
-      this._alive = false;
-      this._deathListener();
+      this.kill();
     }
   }
 
@@ -65,6 +64,10 @@ exports.Snake = class Snake {
     return this._cells[0];
   }
 
+  get body() {
+    return this._cells.slice(1);
+  }
+
   get tail() {
     return this._cells[this.length - 1];
   }
@@ -83,8 +86,8 @@ exports.Snake = class Snake {
 
   get json() {
     return {
-      cells: this.cells.map(cell => cell.json),
+      cells: this.cells.map((cell) => cell.json),
       alive: this.alive,
     };
   }
-}
+};

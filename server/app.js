@@ -56,20 +56,73 @@ const FPS = 1; //7; // TODO: make fps changable
 const { Snake } = require("./snake.js");
 const { Vec } = require("./vector.js");
 
-const createSnake = (ownerId) => {
-  return new Snake(
-    new Vec(Math.floor(TILES / 2), Math.floor(TILES / 2)),
-    () => {
-      console.log("dead");
-      io.to(ownerId).emit("dead");
-      snakes = Object.keys(snakes)
-        .filter((key) => key !== ownerId)
-        .reduce((obj, key) => {
-          obj[key] = snakes[key];
-          return obj;
-        }, {});
+const getCentralEmptyPosition = () => {
+  let center = new Vec(Math.floor(TILES / 2), Math.floor(TILES / 2));
+  let position = center;
+  const checkPosition = (position) =>
+    position.x >= 0 &&
+    position.y >= 0 &&
+    position.x < TILES &&
+    position.y < TILES &&
+    Object.values(snakes)
+      .map((snake) => snake.cells)
+      .reduce((arr, cells) => {
+        arr.push(...cells);
+        return arr;
+      }, [])
+      .filter((cell) => cell.equals(position)).length === 0;
+
+  if (checkPosition(position)) {
+    return position;
+  }
+
+  while (position.y >= -0.5 * TILES) {
+    position = position.add(new Vec(0, -1));
+    if (checkPosition(position)) {
+      return position;
     }
-  );
+    while (position.y < center.y) {
+      position = position.add(new Vec(1, 1));
+      if (checkPosition(position)) {
+        return position;
+      }
+    }
+    while (position.x > center.x) {
+      position = position.add(new Vec(-1, 1));
+      if (checkPosition(position)) {
+        return position;
+      }
+    }
+    while (position.y > center.y) {
+      position = position.add(new Vec(-1, -1));
+      if (checkPosition(position)) {
+        return position;
+      }
+    }
+    while (position.x < center.x) {
+      position = position.add(new Vec(1, -1));
+      if (checkPosition(position)) {
+        return position;
+      }
+    }
+  }
+
+  throw new Error("no empty position");
+};
+
+const createSnake = (ownerId) => {
+  let snakePosition = getCentralEmptyPosition();
+
+  return new Snake(new Vec(snakePosition.x, snakePosition.y), () => {
+    console.log("dead");
+    io.to(ownerId).emit("dead");
+    snakes = Object.keys(snakes)
+      .filter((key) => key !== ownerId)
+      .reduce((obj, key) => {
+        obj[key] = snakes[key];
+        return obj;
+      }, {});
+  });
 };
 
 //let snake = createSnake();
@@ -125,21 +178,51 @@ setInterval(() => {
 const emitGameToAll = (io) => {
   if (Object.values(snakes).filter((snake) => snake.alive).length > 0) {
     for (let client of users) {
-      io.to(client).emit("game", {
-        snakes: Object.values(snakes).map((snake) => snake.json),
-        score: snakes[client]?.length,
-        apple: applePosition.json,
-      });
+      emitGame(io.to(client), client);
     }
   }
 };
-const emitGame = (socket) => {
+const emitGame = (socket, socketId) => {
   if (Object.values(snakes).filter((snake) => snake.alive).length > 0) {
     socket.emit("game", {
       snakes: Object.values(snakes).map((snake) => snake.json),
-      score: snakes[socket.id]?.length,
+      score: snakes[socketId]?.length,
       apple: applePosition.json,
     });
+  }
+};
+
+const checkSnakeCollisions = () => {
+  let collisionBoard = [];
+
+  for (let i in Array.apply(null, Array(TILES))) {
+    collisionBoard[i] = [];
+    for (let j in Array.apply(null, Array(TILES))) {
+      collisionBoard[i][j] = { body: [], head: [] };
+    }
+  }
+
+  for (let id in snakes) {
+    for (let bodyCell of snakes[id].body) {
+      collisionBoard[bodyCell.x][bodyCell.y].body.push(id);
+    }
+
+    collisionBoard[snakes[id].head.x][snakes[id].head.y].head.push(id);
+  }
+
+  for (let i in collisionBoard) {
+    for (let j in collisionBoard[i]) {
+      if (collisionBoard[i][j].head.length > 1) {
+        for (let id of collisionBoard[i][j].head) {
+          snakes[id].kill();
+        }
+      } else if (
+        collisionBoard[i][j].head.length === 1 &&
+        collisionBoard[i][j].body.length > 0
+      ) {
+        snakes[collisionBoard[i][j].head[0]].kill();
+      }
+    }
   }
 };
 
@@ -157,15 +240,15 @@ const updateGame = () => {
     ) {
       generatorObj.next(true);
       snake.kill();
-    }
-
-    if (snake.head.equals(applePosition)) {
+    } else if (snake.head.equals(applePosition)) {
       generatorObj.next(false);
       applePosition = positionApple(snakes);
     } else {
       generatorObj.next(true);
     }
   }
+
+  checkSnakeCollisions();
 
   emitGameToAll(io);
 };
@@ -184,7 +267,7 @@ let users = [];
 io.on("connection", (socket) => {
   console.log("new user has connected");
   snakes[socket.id] = createSnake(socket.id);
-  emitGame(socket);
+  emitGame(socket, socket.id);
   users.push(socket.id);
   socket.on("input", (input) => {
     console.log(`input ${input}`);
