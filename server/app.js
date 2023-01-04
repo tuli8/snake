@@ -110,19 +110,65 @@ const getCentralEmptyPosition = () => {
   throw new Error("no empty position");
 };
 
+const hsvToRgb = (h, s, v) => {
+  const M = 255 * v;
+  const m = M * (1 - s);
+  const z = (M - m) * (1 - Math.abs(((h / 60) % 2) - 1));
+
+  if (h >= 0 && h < 60) {
+    return [M, z + m, m];
+  }
+
+  if (h >= 60 && h < 120) {
+    return [z + m, M, m];
+  }
+
+  if (h >= 120 && h < 180) {
+    return [m, M, z + m];
+  }
+
+  if (h >= 180 && h < 240) {
+    return [m, z + m, M];
+  }
+
+  if (h >= 240 && h < 300) {
+    return [z + m, m, M];
+  }
+
+  return [M, m, z + m];
+};
+
+const randomBrightColor = () =>
+  hsvToRgb(Math.random() * 360, 1, 1)
+    .map(Math.floor)
+    .map((color) =>
+      [Math.floor(color / 16), color % 16]
+        .map((digit) =>
+          digit < 10
+            ? digit
+            : String.fromCharCode("a".charCodeAt() + digit - 10)
+        )
+        .join("")
+    )
+    .join("");
+
 const createSnake = (ownerId) => {
   let snakePosition = getCentralEmptyPosition();
 
-  return new Snake(new Vec(snakePosition.x, snakePosition.y), () => {
-    console.log("dead");
-    io.to(ownerId).emit("dead");
-    snakes = Object.keys(snakes)
-      .filter((key) => key !== ownerId)
-      .reduce((obj, key) => {
-        obj[key] = snakes[key];
-        return obj;
-      }, {});
-  });
+  return new Snake(
+    new Vec(snakePosition.x, snakePosition.y),
+    () => {
+      console.log("dead");
+      io.to(ownerId).emit("dead");
+      snakes = Object.keys(snakes)
+        .filter((key) => key !== ownerId)
+        .reduce((obj, key) => {
+          obj[key] = snakes[key];
+          return obj;
+        }, {});
+    },
+    randomBrightColor()
+  );
 };
 
 //let snake = createSnake();

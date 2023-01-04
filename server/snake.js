@@ -13,12 +13,13 @@ exports.Snake = class Snake {
     new Vec(-1, 0),
   ];
 
-  constructor(startingPos, deathListener) {
+  constructor(startingPos, deathListener, color) {
     this._cells = [startingPos];
     this._facing = 0;
     this._lastDirection = 0;
     this._deathListener = deathListener;
     this._alive = true;
+    this._color = color;
   }
 
   moveSnake = function* () {
@@ -72,6 +73,10 @@ exports.Snake = class Snake {
     return this._cells[this.length - 1];
   }
 
+  get color() {
+    return this._color;
+  }
+
   changeDirection(newDirection) {
     if (
       newDirection >= 0 &&
@@ -88,6 +93,7 @@ exports.Snake = class Snake {
     return {
       cells: this.cells.map((cell) => cell.json),
       alive: this.alive,
+      color: this.color,
     };
   }
 };

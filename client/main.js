@@ -2,7 +2,6 @@ const TILES = 11; // TODO: fetch from server
 const FPS = 7; // TODO: fetch from server
 const GRID_COLOR = "#4d4d4d";
 const APPLE_COLOR = "white";
-const SNAKE_COLOR = "white";
 const HEIGHT_PERCENT = 70;
 const WIDTH_PERCENT = 80;
 const DEFAULT_SCORE = 1;
@@ -236,10 +235,10 @@ const updateCanvas = () => {
     }
   }
   if (snakes.length > 0) {
-    context.strokeStyle = SNAKE_COLOR;
     context.fillStyle = APPLE_COLOR;
 
     for (let snake of snakes) {
+      context.strokeStyle = `#${snake.color}`;
       if (snake?.length === 1) {
         context.strokeRect(
           snake.head.x * tileSize,

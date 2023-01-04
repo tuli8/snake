@@ -19,9 +19,10 @@ class Snake {
     this._alive = true;
   }*/
 
-  constructor (otherSnake) {
-    this._cells = otherSnake.cells.map(cell => new Vec(cell.x, cell.y));
+  constructor(otherSnake) {
+    this._cells = otherSnake.cells.map((cell) => new Vec(cell.x, cell.y));
     this._alive = otherSnake.alive;
+    this._color = otherSnake.color;
   }
 
   /*moveSnake = function* () {
@@ -70,6 +71,10 @@ class Snake {
 
   get tail() {
     return this._cells[this.length - 1];
+  }
+
+  get color() {
+    return this._color;
   }
 
   /*changeDirection(newDirection) {
