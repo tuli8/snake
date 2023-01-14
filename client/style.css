@@ -32,7 +32,7 @@ popup {
     transition: ease-in-out top 0.4s;
 }
 
-popup h1, score-container h1 {
+popup h1, score-container h1, start-button {
     font-size: 2vw;
 }
 
@@ -93,4 +93,49 @@ score-container {
     align-items: flex-end;
     flex-direction: column;
     width: 100%;
+}
+
+color {
+    display:inline-block;
+    width: 4vw;
+    aspect-ratio: 1.6;
+    border-radius:2px;
+    cursor: pointer;
+    box-sizing: border-box;
+}
+
+color:hover {
+    border:#919191 2px solid;
+}
+
+color[selected]{
+    border:#ffffff 2px solid;
+}
+
+.color-container {
+    display:flex;
+    align-items: center;
+    justify-content: center;
+}
+
+start-button {
+    width:inherit;
+    font-size: 2vw;
+    background-color: #222222;
+    border: 0;
+    padding:10px;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: ease-in-out background-color 0.2s;
+}
+
+start-button:hover {
+    background-color: #6b6b6b;
+}
+
+.color-popup {
+    display:flex;
+    flex-direction: column;
+    justify-content:space-around;
+    align-items: center;
 }

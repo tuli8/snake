@@ -63,6 +63,37 @@ window.onload = () => {
 
   document.getElementById("reset").onclick = reset;
 
+  let colors = document.getElementsByTagName("color");
+
+  for (let color of colors) {
+    color.style.backgroundColor = color.getAttribute("color");
+
+    if (color.getAttribute("color") === localStorage.getItem("color")) {
+      color.setAttribute("selected", true);
+      socket.emit("changeColor", color.getAttribute("color"));
+    }
+
+    color.onclick = (event) => {
+      socket.emit("changeColor", color.getAttribute("color"));
+      localStorage.setItem("color", color.getAttribute("color"));
+
+      for (let color of colors) {
+        color.removeAttribute("selected");
+      }
+
+      color.setAttribute("selected", true);
+    };
+  }
+
+  let startButtons = document.getElementsByTagName("start-button");
+
+  for (let button of startButtons) {
+    button.onclick = () => {
+      socket.emit("start");
+      document.getElementById("color").setAttribute("closed", true);
+    };
+  }
+
   updateCanvas();
 };
 
@@ -238,7 +269,7 @@ const updateCanvas = () => {
     context.fillStyle = APPLE_COLOR;
 
     for (let snake of snakes) {
-      context.strokeStyle = `#${snake.color}`;
+      context.strokeStyle = snake.color;
       if (snake?.length === 1) {
         context.strokeRect(
           snake.head.x * tileSize,

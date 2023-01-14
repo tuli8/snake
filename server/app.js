@@ -56,6 +56,8 @@ const FPS = 1; //7; // TODO: make fps changable
 const { Snake } = require("./snake.js");
 const { Vec } = require("./vector.js");
 
+let users = {};
+
 const getCentralEmptyPosition = () => {
   let center = new Vec(Math.floor(TILES / 2), Math.floor(TILES / 2));
   let position = center;
@@ -64,8 +66,9 @@ const getCentralEmptyPosition = () => {
     position.y >= 0 &&
     position.x < TILES &&
     position.y < TILES &&
-    Object.values(snakes)
-      .map((snake) => snake.cells)
+    Object.values(users)
+      .filter((user) => user.snake)
+      .map((user) => user.snake.cells)
       .reduce((arr, cells) => {
         arr.push(...cells);
         return arr;
@@ -139,6 +142,7 @@ const hsvToRgb = (h, s, v) => {
 };
 
 const randomBrightColor = () =>
+  "#" +
   hsvToRgb(Math.random() * 360, 1, 1)
     .map(Math.floor)
     .map((color) =>
@@ -155,25 +159,14 @@ const randomBrightColor = () =>
 const createSnake = (ownerId) => {
   let snakePosition = getCentralEmptyPosition();
 
-  return new Snake(
-    new Vec(snakePosition.x, snakePosition.y),
-    () => {
-      console.log("dead");
-      io.to(ownerId).emit("dead");
-      snakes = Object.keys(snakes)
-        .filter((key) => key !== ownerId)
-        .reduce((obj, key) => {
-          obj[key] = snakes[key];
-          return obj;
-        }, {});
-    },
-    randomBrightColor()
-  );
+  return new Snake(new Vec(snakePosition.x, snakePosition.y), () => {
+    console.log("dead");
+    io.to(ownerId).emit("dead");
+    users[ownerId].snake = undefined;
+  });
 };
 
 //let snake = createSnake();
-let snakes = {};
-
 const positionApple = (snakes) => {
   const emptyCells = [];
 
@@ -183,7 +176,7 @@ const positionApple = (snakes) => {
     }
   }
 
-  for (let snake of Object.values(snakes)) {
+  for (let snake of snakes) {
     for (let cell of snake.cells) {
       const index = emptyCells
         .map((element) => cell.equals(element))
@@ -197,7 +190,9 @@ const positionApple = (snakes) => {
   return emptyCells[Math.floor(Math.random() * emptyCells.length)];
 };
 
-let applePosition = positionApple(snakes);
+let applePosition = positionApple(
+  Object.values(users).map((user) => user.snake)
+);
 //let gameLoopId;
 
 /*const startGame = () => {
@@ -211,7 +206,11 @@ let applePosition = positionApple(snakes);
 };*/
 
 setInterval(() => {
-  if (Object.values(snakes).filter((snake) => snake.alive).length > 0) {
+  if (
+    Object.values(users)
+      .map((user) => user.snake)
+      .filter((snake) => snake?.alive).length > 0
+  ) {
     updateGame();
   }
 }, (1 / FPS) * 1000);
@@ -222,17 +221,20 @@ setInterval(() => {
 };*/
 
 const emitGameToAll = (io) => {
-  if (Object.values(snakes).filter((snake) => snake.alive).length > 0) {
-    for (let client of users) {
+  if (Object.values(users).filter((user) => user.snake)) {
+    for (let client of Object.keys(users)) {
       emitGame(io.to(client), client);
     }
   }
 };
 const emitGame = (socket, socketId) => {
-  if (Object.values(snakes).filter((snake) => snake.alive).length > 0) {
+  if (users[socketId].snake) {
+    let snakes = Object.values(users)
+      .filter((user) => user.snake)
+      .map((user) => ({ ...user.snake.json, color: user.color }));
     socket.emit("game", {
-      snakes: Object.values(snakes).map((snake) => snake.json),
-      score: snakes[socketId]?.length,
+      snakes,
+      score: users[socketId]?.snake?.length,
       apple: applePosition.json,
     });
   }
@@ -248,32 +250,34 @@ const checkSnakeCollisions = () => {
     }
   }
 
-  for (let id in snakes) {
-    for (let bodyCell of snakes[id].body) {
+  for (let id of Object.keys(users).filter((id) => users[id].snake)) {
+    for (let bodyCell of users[id].snake.body) {
       collisionBoard[bodyCell.x][bodyCell.y].body.push(id);
     }
 
-    collisionBoard[snakes[id].head.x][snakes[id].head.y].head.push(id);
+    collisionBoard[users[id].snake.head.x][users[id].snake.head.y].head.push(
+      id
+    );
   }
 
   for (let i in collisionBoard) {
     for (let j in collisionBoard[i]) {
       if (collisionBoard[i][j].head.length > 1) {
         for (let id of collisionBoard[i][j].head) {
-          snakes[id].kill();
+          users[id].snake.kill();
         }
       } else if (
         collisionBoard[i][j].head.length === 1 &&
         collisionBoard[i][j].body.length > 0
       ) {
-        snakes[collisionBoard[i][j].head[0]].kill();
+        users[collisionBoard[i][j].head[0]].snake.kill();
       }
     }
   }
 };
 
 const updateGame = () => {
-  for (let snake of Object.values(snakes)) {
+  for (let snake of Object.values(users).map((user) => user.snake)) {
     // TODO: take care of two snakes killing each other
     const generatorObj = snake.moveSnake();
     generatorObj.next();
@@ -288,7 +292,9 @@ const updateGame = () => {
       snake.kill();
     } else if (snake.head.equals(applePosition)) {
       generatorObj.next(false);
-      applePosition = positionApple(snakes);
+      applePosition = positionApple(
+        Object.values(users).map((user) => user.snake)
+      );
     } else {
       generatorObj.next(true);
     }
@@ -302,38 +308,44 @@ const updateGame = () => {
 const reset = (socketId) => {
   //TODO: create reset
   //snakes.push(createSnake());
-  snakes[socketId] = createSnake(socketId);
+  users[socketId].snake = createSnake(socketId);
   //applePosition = positionApple(snake);
   emitGameToAll(io);
   // TODO: save highscores
 };
 
-let users = [];
-
 io.on("connection", (socket) => {
   console.log("new user has connected");
-  snakes[socket.id] = createSnake(socket.id);
-  emitGame(socket, socket.id);
-  users.push(socket.id);
+  users[socket.id] = { color: randomBrightColor() };
+
+  socket.on("start", () => {
+    users[socket.id].snake = createSnake(socket.id);
+    emitGame(socket, socket.id);
+  });
+
+  socket.on("changeColor", (color) => {
+    users[socket.id].color = color;
+  });
+
   socket.on("input", (input) => {
     console.log(`input ${input}`);
-    if (snakes[socket.id]?.alive) {
+    if (users[socket.id]?.snake?.alive) {
       try {
         switch (input) {
           case "up":
-            snakes[socket.id].changeDirection(Snake.UP_DIRECTION);
+            users[socket.id].snake.changeDirection(Snake.UP_DIRECTION);
             //startGame();
             break;
           case "down":
-            snakes[socket.id].changeDirection(Snake.DOWN_DIRECTION);
+            users[socket.id].snake.changeDirection(Snake.DOWN_DIRECTION);
             //startGame();
             break;
           case "left":
-            snakes[socket.id].changeDirection(Snake.LEFT_DIRECTION);
+            users[socket.id].snake.changeDirection(Snake.LEFT_DIRECTION);
             //startGame();
             break;
           case "right":
-            snakes[socket.id].changeDirection(Snake.RIGHT_DIRECTION);
+            users[socket.id].snake.changeDirection(Snake.RIGHT_DIRECTION);
             //startGame();
             break;
         }
@@ -347,7 +359,13 @@ io.on("connection", (socket) => {
 
   socket.on("disconnect", () => {
     console.log("disconnected from user");
-    users = users.filter((user) => user !== socket.id);
+
+    users = Object.keys(users)
+      .filter((key) => key !== socket.id)
+      .reduce((obj, key) => {
+        obj[key] = users[key];
+        return obj;
+      }, {});
   });
 });
 
