@@ -11,15 +11,17 @@ socket.on("connect", () => {
   console.log("connected to server");
 });
 
+let snakes = [];
+let myHead;
+let applePosition;
+
 socket.on("game", (game) => {
   snakes = game.snakes.map((snake) => new Snake(snake));
   applePosition = new Vec(game.apple.x, game.apple.y);
   updateCanvas();
   updateScore(game.score);
+  myHead = game.myHead;
 });
-
-let snakes = [];
-let applePosition;
 
 window.onload = () => {
   const width = Math.floor(
@@ -58,7 +60,7 @@ window.onload = () => {
     }
   });
 
-  window.addEventListener("touchstart", handleTouchStart);
+  //window.addEventListener("touchstart", handleTouchStart);
   window.addEventListener("touchend", handleTouchEnd);
 
   document.getElementById("reset").onclick = reset;
@@ -99,13 +101,61 @@ window.onload = () => {
 
 let touches = [];
 
-const handleTouchStart = (e) => {
+/*const handleTouchStart = (e) => {
   for (let touch of e.changedTouches) {
     touches.push({ id: touch.identifier, x: touch.screenX, y: touch.screenY });
   }
+};*/
+const handleTouchEnd = (e) => {
+  if (!myHead) {
+    return;
+  }
+
+  let count = 1;
+  let sumTouchePos = new Vec(
+    e.changedTouches[0].pageX,
+    e.changedTouches[0].pageY
+  );
+
+  for (let i = 1; i < e.changedTouches.length; i++) {
+    sumTouchePos = sumTouchePos.add(
+      new Vec(e.changedTouches[i].pageX, e.changedTouches[i].pageY)
+    );
+    count++;
+  }
+
+  sumTouchePos = sumTouchePos.multiply(1 / count);
+
+  const canvasWidth = document.getElementById("canvas").width;
+  const tileSize = canvasWidth / TILES;
+  const headPos = new Vec(
+    document.getElementById("canvas").offsetLeft + (myHead.x + 0.5) * tileSize,
+    document.getElementById("canvas").offsetTop + (myHead.y + 0.5) * tileSize
+  );
+  const slope = sumTouchePos.slope(headPos);
+
+  let touchAgainstHead = sumTouchePos.subtract(headPos);
+
+  if (slope === Infinity) {
+    socket.emit("input", "up");
+  } else if (slope === -Infinity) {
+    socket.emit("input", "down");
+  } else if (slope > 1 || slope < -1) {
+    if (touchAgainstHead.y > 0) {
+      socket.emit("input", "down");
+    } else {
+      socket.emit("input", "up");
+    }
+  } else {
+    if (touchAgainstHead.x > 0) {
+      socket.emit("input", "right");
+    } else {
+      socket.emit("input", "left");
+    }
+  }
 };
 
-const handleTouchEnd = (e) => {
+/*const handleTouchEnd = (e) => {
   for (let i = 0; i < e.changedTouches.length; i++) {
     let removedTouchIndex = touches.findIndex(
       (element) => element.id === e.changedTouches[i].identifier
@@ -136,7 +186,7 @@ const handleTouchEnd = (e) => {
       console.log(error.message);
     }
   }
-};
+};*/
 
 /*const startGame = () => {
   if (!gameLoopId) {

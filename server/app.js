@@ -52,7 +52,7 @@ app.use(function (err, req, res, next) {
 server.listen(port);
 
 const TILES = 11; // TODO: make TILES changable
-const FPS = 1; //7; // TODO: make fps changable
+const FPS = 5; // TODO: make fps changable
 const { Snake } = require("./snake.js");
 const { Vec } = require("./vector.js");
 
@@ -233,6 +233,7 @@ const emitGame = (socket, socketId) => {
       .filter((user) => user.snake)
       .map((user) => ({ ...user.snake.json, color: user.color }));
     socket.emit("game", {
+      myHead: users[socketId].snake.head.json,
       snakes,
       score: users[socketId]?.snake?.length,
       apple: applePosition.json,

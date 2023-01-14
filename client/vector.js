@@ -31,4 +31,12 @@ class Vec {
   subtract(otherVec) {
     return new Vec(this.x - otherVec.x, this.y - otherVec.y);
   }
+
+  multiply(scalar) {
+    return new Vec(this.x * scalar, this.y * scalar);
+  }
+
+  slope(otherVec) {
+    return (this.y - otherVec.y) / (this.x - otherVec.x);
+  }
 }
